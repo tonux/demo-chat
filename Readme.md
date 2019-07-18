@@ -16,21 +16,23 @@ Réaliser l’application suivante :Minimal chat application erlang qui accepte 
 
 ### Installing
 
-```
+
 https://medium.com/erlang-central/erlang-quick-install-9c5dcaa5b634
-```
+
 
 ## Deployment
-
+```
 * open terminal
 * erl
 * c(demo_chat).
 * demo_chat:run().
-
+```
 ## - Run client
+```
 * open terminal
 * telnet localhost 4000
+```
 
 ## Authors
 
-* **Tonux SAMB** - 
+* **Tonux SAMB** - twitter : https://twitter.com/tonux_samb
