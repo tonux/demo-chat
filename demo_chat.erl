@@ -18,13 +18,14 @@ login(Socket) ->
         _ -> ok
     end.
 
-server() -> server([]).
-server(Users) ->
+server() -> server({[]}).
+server({Users}) ->
     receive
         {join, User=#user{userName = _UserName, socket = Socket}} ->
             self() ! {post, Socket, "  has joined the channel. \n\r"},
-            server(Users ++ [User]);
+            server({Users ++ [User]});
         {post, Socket, Content} ->
+            
             {value, #user{userName = From}, List} = lists:keytake(Socket, 3, Users),
             Message = "--" ++ From ++ " : " ++ Content,
             case Content of
@@ -39,14 +40,16 @@ server(Users) ->
             _ ->
                 %% not equal quit 
                 lists:map(fun(#user{socket = S}) ->
+                    save(Message),
                     gen_tcp:send(S, Message)
                 end, List)
             end;
         {quit, Socket} ->
+            % put content in File
             {value, #user{userName = _UserName}, List} = lists:keytake(Socket, 3, Users),
-            server(List)
+            server({List})
     end,
-    server(Users).
+    server({Users}).
 
 client(Socket) ->
     case listen(Socket) of
@@ -61,6 +64,14 @@ listen(Socket) ->
     case gen_tcp:recv(Socket, 0) of
         Response -> Response
     end.
+
+save(Message) ->
+    case file:read_file_info("Message.txt") of
+        {ok, _FileInfo} ->
+                 file:write_file("Message.txt", Message, [append]);
+        {error, enoent} ->
+                 donothing
+ end.
 
 quit([], Socket) -> 
     gen_tcp:send(Socket, " you left the channel. \n\r"),
