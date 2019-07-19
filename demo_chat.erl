@@ -4,7 +4,7 @@
 -export([run/0]).
 
 -define(OPTIONS, [binary, {packet, 0}, {active, false}, {reuseaddr, true}]).
--record(user, {userName=none, socket=none}).
+-record(user, {userName, socket}).
 
 % when user is first connect ask username
 login(Socket) ->
@@ -29,11 +29,13 @@ server(Users) ->
             Message = "--" ++ From ++ " : " ++ Content,
             case Content of
             [113,117,105,116,13,10] ->
-                %% equal quit 
-                lists:map(fun(#user{socket = S}) ->
-                    gen_tcp:send(S, "**" ++ From ++ " left the channel. \n\r"),
-                    gen_tcp:close(Socket)
-                end, List);
+                %% equal quit
+                case List of 
+                    [] -> 
+                        quit([], Socket);
+                    _ -> 
+                        quit(List, Socket, From)
+                end;
             _ ->
                 %% not equal quit 
                 lists:map(fun(#user{socket = S}) ->
@@ -59,6 +61,15 @@ listen(Socket) ->
     case gen_tcp:recv(Socket, 0) of
         Response -> Response
     end.
+
+quit([], Socket) -> 
+    gen_tcp:send(Socket, " you left the channel. \n\r"),
+    gen_tcp:close(Socket).
+quit(List, Socket, From) -> 
+    lists:map(fun(#user{socket = S}) ->
+        gen_tcp:send(S, "**" ++ From ++ " left the channel. \n\r"),
+        gen_tcp:close(Socket)
+    end, List).
 
 acceptor(ListenSocket) ->
     {ok, Socket} = gen_tcp:accept(ListenSocket),
