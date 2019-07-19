@@ -10,8 +10,8 @@
 login(Socket) ->
     gen_tcp:send(Socket, "Give your username :) "),
     case listen(Socket) of
-        {ok, N} ->
-            UserName = binary_to_list(N),
+        {ok, Name} ->
+            UserName = binary_to_list(Name),
             UserName,
             server ! {join, #user{userName =  lists:sublist(UserName, 1, length(UserName) - 2), socket = Socket} },
             client(Socket);
@@ -26,18 +26,25 @@ server(Users) ->
             server(Users ++ [User]);
         {post, Socket, Content} ->
             {value, #user{userName = From}, List} = lists:keytake(Socket, 3, Users),
-            Message = "__" ++ From ++ " : " ++ Content,
-            lists:map(fun(#user{socket = S}) ->
-                    gen_tcp:send(S, Message)
+            Message = "--" ++ From ++ " : " ++ Content,
+            case Content of
+            [113,117,105,116,13,10] ->
+                %% equal quit 
+                lists:map(fun(#user{socket = S}) ->
+                    gen_tcp:send(S, "**" ++ From ++ " left the channel. \n\r"),
+                    gen_tcp:close(Socket)
                 end, List);
+            _ ->
+                %% not equal quit 
+                lists:map(fun(#user{socket = S}) ->
+                    gen_tcp:send(S, Message)
+                end, List)
+            end;
         {quit, Socket} ->
             {value, #user{userName = _UserName}, List} = lists:keytake(Socket, 3, Users),
-            self() ! {post, none, _Message = "left the channel."},
             server(List)
     end,
     server(Users).
-
-%% lists:keytake(Socket, 3, Users) : Take first Tuple which its 3em element is Socket, Also yield Rest of List: 
 
 client(Socket) ->
     case listen(Socket) of
